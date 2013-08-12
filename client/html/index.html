@@ -1,0 +1,134 @@
+<html>
+    <head>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script type="text/javascript">
+            $(function(){
+                /*
+                 * document.getElementByID performs better though!
+                 */
+                var table = $("#tictactoeTable").get(0);
+                
+                /*
+                 * Instead of adding an event listener to each cell.. add a 
+                 * listener to the table
+                 */
+                table.addEventListener('click', function makeMove(event) {
+                    if (event.target.tagName === 'TD' || 
+                            event.target.tagName === 'td')
+                        var id = event.target.id;
+
+                    if(readyToSend) {
+                        socket.emit('mark', {
+                            'index' : id, 
+                            'code' : code
+                        });
+                        readyToSend = false;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }, false);
+            });
+            var socket = io.connect('http://localhost:8989');
+
+            var code = {};
+            var readyToSend = false;
+
+            function update(code, index) {
+                $('#' +index).html(code);
+            }
+
+            socket.on('connect', function(){
+                socket.emit('newPlayer', prompt("What's your name?"));
+                $('#status').append('<div> You are connected to server!!</div>');
+            });
+
+            socket.on('makeMove', function (data) {
+                $('#status').append('<div>Time to place your first Move</div>');
+                code = data.code;
+                var opponent = data.opponent;
+                readyToSend = true;
+                $('#status').append('<div> Please click the tictactoe cell!!</div>');
+            });
+
+            socket.on('makeMoveContinue', function (data) {
+                readyToSend = true;
+                $('#status').append('<div>Please click the tictactoe cell!!</div>');
+            });
+
+            socket.on('ready', function (data) {
+                code = data.code;
+                $('#status').append('<div>Game started.. Wait for your opponent to make a move..</div>');
+            });
+
+            socket.on('readyContinue', function (data) {
+                $('#status').append('<div>Wait for your opponent to make a move..</div>');
+            });
+
+            socket.on('update', function (data) {
+                var code = data.code;
+                var index = data.index;
+                update(code, index);
+            });
+
+            socket.on('drop', function (data) {
+                $('#status').append('<div>Sorry.. Please connect later..</div>');
+                socket.emit('disconnect')
+            });
+
+            socket.on('youWin', function (data) {
+                $('#status').append('<div>Congratulations. You have won!!!</div>');
+            });
+
+            socket.on('youLose', function (data) {
+                $('#status').append('<div>Sorry. You have lost. Better luck next time..</div>');
+            });
+
+            socket.on('matchOver', function (data) {
+                $('#status').append('<div>Time to play</div>');
+            });
+
+            socket.on('invalidMove', function (data) {
+                $('#status').append('<div>Time to play</div>');
+            });
+
+            socket.on('wait', function (data) {
+                $('#status').append('<div>Please Wait..</div>');
+            });
+
+        </script>
+    </head>
+    <body>
+
+        <div id ="box">
+            <h1> TIC - TAC - TOE </h1>
+            <br>
+            <br>
+            <div id="tictac">
+            <table style="width:200px; height: 200px" id="tictactoeTable" border="1">
+                <tr>
+                    <td id="1">&nbsp;</td>
+                    <td id="2">&nbsp;</td>
+                    <td id="3">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="4">&nbsp;</td>
+                    <td id="5">&nbsp;</td>
+                    <td id="6">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="7">&nbsp;</td>
+                    <td id="8">&nbsp;</td>
+                    <td id="9">&nbsp;   </td>
+                </tr>
+            </table>
+            </div>
+        </div>
+        <br>
+        <br>
+        <div id="status">
+            <b>STATUS</b>
+        </div>
+    </body>
+</html>
